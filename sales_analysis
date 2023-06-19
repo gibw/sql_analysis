@@ -1,0 +1,158 @@
+USE projects;
+SELECT* FROM sales_06;
+
+ -- checking table description--
+DESCRIBE sales_06;
+
+ -- working on the order_date column and converting the Order_date to date format--
+ SELECT order_date FROM sales_06;
+ SET sql_safe_updates = 0; -- setting off the sql safe update mode--
+ UPDATE sales_06 set order_date = date_format( str_to_date(order_date, '%d/%m/%Y'), '%Y-%m-%d');
+ ALTER TABLE sales_06 MODIFY COLUMN order_date DATE;
+ 
+-- working on the "Customer Since" column and converting the column to date format--
+ SELECT customer_since From sales_06;
+ UPDATE sales_06 set customer_since = date_format( str_to_date(customer_since, '%m/%d/%Y'), '%Y-%m-%d');
+  ALTER TABLE sales_06 MODIFY COLUMN customer_since DATE;
+ ALTER TABLE sales_06 add column memb_duration int;
+ UPDATE sales_06
+  SET memb_duration = timestampdiff(YEAR, customer_since, CURDATE());
+  SET sql_safe_updates = 1; -- turning on the sql safe update mode--
+  
+-- select unique values from data--
+SELECT COUNT( DISTINCT year) FROM sales_06;
+SELECT DISTINCT year FROM sales_06;
+SELECT COUNT( DISTINCT status) FROM sales_06;
+SELECT DISTINCT status FROM sales_06;
+SELECT COUNT( DISTINCT memb_duration) FROM sales_06;
+SELECT MAX(memb_duration) AS olderst_membership,
+ MIN(memb_duration) AS youngest_membership FROM sales_06;
+SELECT DISTINCT memb_duration FROM sales_06;
+SELECT DISTINCT category FROM sales_06;
+SELECT DISTINCT gender FROM sales_06;
+SELECT DISTINCT bi_st FROM sales_06;
+SELECT DISTINCT region FROM sales_06;
+SELECT DISTINCT state FROM sales_06;
+
+-- ANALYSIS
+-- grouping revenue by Category
+SELECT category, SUM(total) as Revenu
+FROM sales_06
+GROUP BY category
+ORDER BY 2 DESC;
+
+-- grouping revenue by state
+SELECT state, SUM(total) as Revenu
+FROM sales_06
+GROUP BY state
+ORDER BY 2 DESC;
+
+-- Checking revenue by region
+SELECT region, SUM(total) as Revenu
+FROM sales_06
+GROUP BY region
+ORDER BY 2 DESC;
+
+-- grouping revenue by year
+SELECT year, SUM(total) as Revenu
+FROM sales_06
+GROUP BY year
+ORDER BY 2 DESC;
+
+-- revenue appears to be very small in 2021  roughly 11% of total sale compared to 2020 where the total sales contributed almost 89%
+SELECT DISTINCT month FROM sales_06 WHERE year =2020;
+SELECT DISTINCT month FROM sales_06 WHERE year =2021;
+
+-- gender breakdown
+SELECT gender, COUNT(*) as count
+FROM sales_06
+GROUP BY gender;
+
+-- breakdown status distribution and revenue
+SELECT status, COUNT(*) as count, SUM(total) as revenue
+FROM sales_06
+GROUP BY status
+ORDER BY revenue DESC;
+
+-- Revenue contribution by gender breakdown
+SELECT gender, SUM(total) as Revenu
+FROM sales_06
+GROUP BY gender
+ORDER BY 2 DESC;
+-- distribution of payment method.
+SELECT payment_method, COUNT(*) as count
+COUNT sales_06
+GROUP BY payment_method
+ORDER BY 2 DESC;
+-- Revenue contribution by Age_group--
+SELECT MAX(age) as oldest,
+MIN(age) as youngest FROM sales_06;
+ 
+ -- creating age groups using case statement.
+SELECT SUM(total) as Revenu, 
+CASE
+ WHEN age <30 THEN '<30'
+ WHEN age>=31 AND age <=40 THEN '31-40'
+ WHEN age>=41 AND age <=50 THEN '41-50'
+ WHEN age>=51 AND age <=60 THEN '51-60'
+ WHEN age>=61 AND age <=70 THEN '61-70'
+ ELSE '70+'
+ END AS age_group,
+ COUNT(*) as count FROM sales_06
+ GROUP BY age_group
+ ORDER BY 2 DESC;
+ 
+ -- A work through of age distribution by gender
+ SELECT SUM(total) as Revenu, 
+CASE
+ WHEN age <30 THEN '<30'
+ WHEN age>=31 AND age <=40 THEN '31-40'
+ WHEN age>=41 AND age <=50 THEN '41-50'
+ WHEN age>=51 AND age <=60 THEN '51-60'
+ WHEN age>=61 AND age <=70 THEN '61-70'
+ ELSE '70+'
+ END AS age_group, gender,
+ COUNT(*) as count FROM sales_06
+ GROUP BY age_group, gender
+ ORDER BY age_group, gender DESC;
+
+-- product category by gender distribution
+ SELECT category, gender, COUNT(*) as count
+ FROM sales_06
+ GROUP BY category, gender
+ ORDER BY category; 
+ 
+-- Percentage contribution of Total Revenue by regions.
+SELECT region, 
+SUM(total) as TotalRevenue,
+SUM(total)/(SELECT SUM(total) FROM sales_06)*100 as percentage
+ FROM sales_06
+ GROUP BY region
+ ORDER BY 2 DESC;
+
+-- Percentage contribution of Total Revenue by Category.
+SELECT category, 
+SUM(total) as TotalRevenue,
+SUM(total)/(SELECT SUM(total) FROM sales_06)*100 as percentage
+ FROM sales_06
+ GROUP BY category
+ ORDER BY 2 DESC;
+
+-- what was the best month for sales in a specific year? How much was earned that month?
+SELECT month, SUM(total) as Revenue, count(order_id) as frequency
+FROM sales_06
+WHERE year=2020
+GROUP BY month
+ORDER BY 2 DESC;
+
+SELECT month, SUM(total) as Revenue, count(order_id) as frequency -- for the year 2021
+FROM sales_06
+WHERE year=2021
+GROUP BY month
+ORDER BY 2 DESC;
+
+-- selecting every customer with the higher revenue contribution by category
+SELECT category, total,full_name, state, region, bi_st
+FROM sales_06
+WHERE(category, total) IN (SELECT category, MAX(total) FROM sales_06 
+GROUP BY category);
